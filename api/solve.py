@@ -35,7 +35,11 @@ class handler(BaseHTTPRequestHandler):
         except Exception as e:
             response = {"error": str(e)}
 
-        self.send_response(200)
-        self.send_header("Content-Type", "application/json")
-        self.end_headers()
+self.send_response(200)
+self.send_header("Content-Type", "application/json")
+self.send_header("Access-Control-Allow-Origin", "*")
+self.send_header("Access-Control-Allow-Methods", "GET")
+self.send_header("Access-Control-Allow-Headers", "Content-Type")
+
+self.end_headers()
         self.wfile.write(json.dumps(response).encode())
