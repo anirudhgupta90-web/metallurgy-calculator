@@ -1,0 +1,32 @@
+from sympy import symbols, Eq, solve
+from http.server import BaseHTTPRequestHandler
+import json
+from urllib.parse import urlparse, parse_qs
+
+class handler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        query = parse_qs(urlparse(self.path).query)
+
+        try:
+            a = float(query.get("a")[0])
+            b = float(query.get("b")[0])
+
+            x, y = symbols('x y')
+
+            eq1 = Eq(x + y, a)
+            eq2 = Eq(2*x - y, b)
+
+            sol = solve((eq1, eq2), (x, y))
+
+            response = {
+                "x": float(sol[x]),
+                "y": float(sol[y])
+            }
+
+        except Exception as e:
+            response = {"error": str(e)}
+
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.end_headers()
+        self.wfile.write(json.dumps(response).encode())
