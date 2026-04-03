@@ -8,19 +8,28 @@ class handler(BaseHTTPRequestHandler):
         query = parse_qs(urlparse(self.path).query)
 
         try:
-            a = float(query.get("a")[0])
-            b = float(query.get("b")[0])
+            # Inputs (convert % to fraction)
+            a = float(query.get("a")[0]) / 100
+            b = float(query.get("b")[0]) / 100
+            c = float(query.get("c")[0]) / 100
+            d = float(query.get("d")[0]) / 100
+            e = float(query.get("e")[0]) / 100
+            f = float(query.get("f")[0]) / 100
+            Z = float(query.get("Z")[0])
 
-            x, y = symbols('x y')
+            # Variables
+            X, Y = symbols('X Y')
 
-            eq1 = Eq(x + y, a)
-            eq2 = Eq(2*x - y, b)
+            # Equations
+            eq1 = Eq(a*X + b*Y, c*Z)
+            eq2 = Eq(d*X + e*Y, f*Z)
 
-            sol = solve((eq1, eq2), (x, y))
+            # Solve
+            sol = solve((eq1, eq2), (X, Y))
 
             response = {
-                "x": float(sol[x]),
-                "y": float(sol[y])
+                "X": float(sol[X]),
+                "Y": float(sol[Y])
             }
 
         except Exception as e:
@@ -29,4 +38,4 @@ class handler(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header("Content-Type", "application/json")
         self.end_headers()
-        self.wfile.write(json.dumps(response).encode()) 
+        self.wfile.write(json.dumps(response).encode())
