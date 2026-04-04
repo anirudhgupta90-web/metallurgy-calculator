@@ -1,45 +1,36 @@
-from sympy import symbols, Eq, solve
-from http.server import BaseHTTPRequestHandler
+import sympy as sp
 import json
-from urllib.parse import urlparse, parse_qs
 
-class handler(BaseHTTPRequestHandler):
-    def do_GET(self):
-        query = parse_qs(urlparse(self.path).query)
+def handler(request):
 
-        try:
-            # Inputs (convert % to fraction)
-            a = float(query.get("a")[0]) / 100
-            b = float(query.get("b")[0]) / 100
-            c = float(query.get("c")[0]) / 100
-            d = float(query.get("d")[0]) / 100
-            e = float(query.get("e")[0]) / 100
-            f = float(query.get("f")[0]) / 100
-            Z = float(query.get("Z")[0])
+    try:
+        a = float(request.query.get("a"))
+        b = float(request.query.get("b"))
+        c = float(request.query.get("c"))
+        d = float(request.query.get("d"))
+        e = float(request.query.get("e"))
+        f = float(request.query.get("f"))
+        Z = float(request.query.get("Z"))
 
-            # Variables
-            X, Y = symbols('X Y')
+        X, Y = sp.symbols('X Y')
 
-            # Equations
-            eq1 = Eq(a*X + b*Y, c*Z)
-            eq2 = Eq(d*X + e*Y, f*Z)
+        eq1 = sp.Eq(a*X + b*Y, c*Z)
+        eq2 = sp.Eq(d*X + e*Y, f*Z)
 
-            # Solve
-            sol = solve((eq1, eq2), (X, Y))
+        sol = sp.solve((eq1, eq2), (X, Y))
 
-            response = {
-                "X": float(sol[X]),
-                "Y": float(sol[Y])
-            }
+        response = {
+            "X": float(sol[X]),
+            "Y": float(sol[Y])
+        }
 
-        except Exception as e:
-            response = {"error": str(e)}
+    except Exception as err:
+        response = {"error": str(err)}
 
-self.send_response(200)
-self.send_header("Content-Type", "application/json")
-self.send_header("Access-Control-Allow-Origin", "*")
-self.send_header("Access-Control-Allow-Methods", "GET")
-self.send_header("Access-Control-Allow-Headers", "Content-Type")
-
-self.end_headers()
-        self.wfile.write(json.dumps(response).encode())
+    return {
+        "statusCode": 200,
+        "headers": {
+            "Access-Control-Allow-Origin": "*"
+        },
+        "body": json.dumps(response)
+    }
