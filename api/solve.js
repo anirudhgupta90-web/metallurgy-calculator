@@ -1,3 +1,10 @@
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_KEY
+);
+
 export default function handler(req, res) {
 
   // 🔥 ALWAYS set CORS headers first
@@ -5,6 +12,36 @@ export default function handler(req, res) {
   res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
+const code = req.query.code;
+
+if (!code) {
+  return res.status(200).json({ error: "Code is required" });
+}
+
+// check code
+const { data, error } = await supabase
+  .from('codes')
+  .select('*')
+  .eq('code', code)
+  .single();
+
+if (error || !data) {
+  return res.status(200).json({ error: "Invalid code" });
+}
+
+if (data.status === 'used') {
+  return res.status(200).json({ error: "Code already used" });
+}
+
+// mark as used
+await supabase
+  .from('codes')
+  .update({
+    status: 'used',
+    used_at: new Date().toISOString()
+  })
+  .eq('code', code);
+  
   // ✅ Handle preflight
   if (req.method === "OPTIONS") {
     return res.status(200).end();
