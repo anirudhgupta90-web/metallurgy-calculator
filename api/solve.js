@@ -1,3 +1,8 @@
+  // 🔥 ALWAYS set CORS headers first
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+
 import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
@@ -5,12 +10,7 @@ const supabase = createClient(
   process.env.SUPABASE_KEY
 );
 
-export default function handler(req, res) {
-
-  // 🔥 ALWAYS set CORS headers first
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+export default async function handler(req, res) {
 
 const code = req.query.code;
 
