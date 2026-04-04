@@ -2,7 +2,6 @@ import sympy as sp
 import json
 
 def handler(request):
-
     try:
         a = float(request.query.get("a"))
         b = float(request.query.get("b"))
@@ -19,18 +18,22 @@ def handler(request):
 
         sol = sp.solve((eq1, eq2), (X, Y))
 
-        response = {
-            "X": float(sol[X]),
-            "Y": float(sol[Y])
+        return {
+            "statusCode": 200,
+            "headers": {
+                "Access-Control-Allow-Origin": "*"
+            },
+            "body": json.dumps({
+                "X": float(sol[X]),
+                "Y": float(sol[Y])
+            })
         }
 
     except Exception as err:
-        response = {"error": str(err)}
-
-    return {
-        "statusCode": 200,
-        "headers": {
-            "Access-Control-Allow-Origin": "*"
-        },
-        "body": json.dumps(response)
-    }
+        return {
+            "statusCode": 200,
+            "headers": {
+                "Access-Control-Allow-Origin": "*"
+            },
+            "body": json.dumps({"error": str(err)})
+        }
