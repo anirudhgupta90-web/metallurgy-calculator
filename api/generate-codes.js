@@ -39,6 +39,19 @@ export default async function handler(req, res) {
       .insert(codes)
       .select();
 
+const email = req.query.email;
+    
+await fetch("https://hook.eu1.make.com/azwlsmv4sx5t04jldq6s7gq3tou7ribw", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify({
+    email: email,
+    codes: data.map(c => c.code)
+  })
+});
+    
     if (error) {
       return res.status(500).json({ error: error.message });
     }
