@@ -1,8 +1,3 @@
-  // 🔥 ALWAYS set CORS headers first
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-
 import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
@@ -12,40 +7,45 @@ const supabase = createClient(
 
 export default async function handler(req, res) {
 
-const code = req.query.code;
+  // 🔥 CORS MUST BE INSIDE
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
-if (!code) {
-  return res.status(200).json({ error: "Code is required" });
-}
-
-// check code
-const { data, error } = await supabase
-  .from('codes')
-  .select('*')
-  .eq('code', code)
-  .single();
-
-if (error || !data) {
-  return res.status(200).json({ error: "Invalid code" });
-}
-
-if (data.status === 'used') {
-  return res.status(200).json({ error: "Code already used" });
-}
-
-// mark as used
-await supabase
-  .from('codes')
-  .update({
-    status: 'used',
-    used_at: new Date().toISOString()
-  })
-  .eq('code', code);
-  
-  // ✅ Handle preflight
+  // ✅ Handle preflight FIRST
   if (req.method === "OPTIONS") {
     return res.status(200).end();
   }
+
+  const code = req.query.code;
+
+  if (!code) {
+    return res.status(200).json({ error: "Code is required" });
+  }
+
+  // check code
+  const { data, error } = await supabase
+    .from('codes')
+    .select('*')
+    .eq('code', code)
+    .single();
+
+  if (error || !data) {
+    return res.status(200).json({ error: "Invalid code" });
+  }
+
+  if (data.status === 'used') {
+    return res.status(200).json({ error: "Code already used" });
+  }
+
+  // mark as used
+  await supabase
+    .from('codes')
+    .update({
+      status: 'used',
+      used_at: new Date().toISOString()
+    })
+    .eq('code', code);
 
   try {
     const a = parseFloat(req.query.a);
