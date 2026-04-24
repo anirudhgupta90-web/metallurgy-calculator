@@ -107,53 +107,52 @@ export default function handler(req, res) {
     // -------------------------
     // 4. BOTH ADDITIVES (CLEAN SOLVER)
     // -------------------------
-    {
-        const steps = 200;       // x resolution
-        const steps_zc = 200;    // zc resolution
+   {
+    const stepsX = 200;
+    const stepsZc = 200;
 
-        const stepX = M / steps;
-        const stepZc = M / steps_zc;
+    const stepX = M / stepsX;
+    const stepZc = M / stepsZc;
 
-        for (let x = 0; x <= M; x += stepX) {
+    for (let x = 0; x <= M; x += stepX) {
 
-            for (let zc = 0; zc <= M; zc += stepZc) {
+        for (let zc = 0; zc <= M; zc += stepZc) {
 
-                // Solve zs from carbon balance
-                // xC1 + yC2 + zcCc = M Ct
-                // y = M - x - zc - zs
+            // Step 1: Solve y from carbon balance
+            let y = (M*Ct - x*C1 - zc*Cc) / C2;
 
-                let numerator =
-                    M*Ct
-                    - x*C1
-                    - (M - x - zc)*C2
-                    - zc*Cc;
+            if (!isFinite(y)) continue;
 
-                let zs = numerator / (-C2);
+            // Step 2: Solve zs from silicon balance
+            let zs = (M*St - x*S1 - y*S2) / Ss;
 
-                if (!isFinite(zs)) continue;
+            if (!isFinite(zs)) continue;
 
-                let y = M - x - zc - zs;
+            // Step 3: Check mass balance
+            let total = x + y + zc + zs;
 
-                if (y < 0 || zc < 0 || zs < 0) continue;
+            if (Math.abs(total - M) > 0.5) continue;
 
-                // Check silicon consistency
-                let S_calc = (x*S1 + y*S2 + zs*Ss) / M;
-                let C_calc = (x*C1 + y*C2 + zc*Cc) / M;
+            // Step 4: Check non-negativity
+            if (x < 0 || y < 0 || zc < 0 || zs < 0) continue;
 
-                if (Math.abs(S_calc - St) > 0.001) continue;
-                if (Math.abs(C_calc - Ct) > 0.001) continue;
+            // Step 5: Final validation (VERY IMPORTANT)
+            let C_calc = (x*C1 + y*C2 + zc*Cc) / M;
+            let S_calc = (x*S1 + y*S2 + zs*Ss) / M;
 
-                let cost = zc*Pc + zs*Ps;
+            if (Math.abs(C_calc - Ct) > 0.001) continue;
+            if (Math.abs(S_calc - St) > 0.001) continue;
 
-                solutions.push({
-                    type: "Both Additives (Exact)",
-                    x, y, zc, zs,
-                    cost
-                });
-            }
+            let cost = zc*Pc + zs*Ps;
+
+            solutions.push({
+                type: "Both Additives (Correct)",
+                x, y, zc, zs,
+                cost
+            });
         }
     }
-
+}
     if (solutions.length === 0) {
         return res.status(200).json({ success: false });
     }
