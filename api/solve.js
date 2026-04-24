@@ -1,6 +1,6 @@
 export default function handler(req, res) {
 
-    // ✅ CORS (needed for WordPress → Vercel)
+    // CORS
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -105,30 +105,66 @@ export default function handler(req, res) {
     }
 
     // -------------------------
-    // 4. BOTH ADDITIVES (simple version)
+    // 4. BOTH ADDITIVES (LP SOLVER)
     // -------------------------
     {
-        let x = M / 2;
-        let y = M / 2;
+        const steps = 200; // increase for more precision
+        const stepSize = M / steps;
 
-        let carbonFromFeeds = x*C1 + y*C2;
-        let siliconFromFeeds = x*S1 + y*S2;
+        for (let x = 0; x <= M; x += stepSize) {
 
-        let zc = (M*Ct - carbonFromFeeds) / Cc;
-        let zs = (M*St - siliconFromFeeds) / Ss;
+            // Solve for zc and zs using equations
+            // Assume y = remaining mass after additives
 
-        if (zc >= 0 && zs >= 0) {
-            let total = x + y + zc + zs;
-            let factor = M / total;
+            let A = Cc;
+            let B = Ss;
 
-            solutions.push({
-                type: "Both Additives",
-                x: x*factor,
-                y: y*factor,
-                zc: zc*factor,
-                zs: zs*factor,
-                cost: zc*factor*Pc + zs*factor*Ps
-            });
+            // Solve using substitution
+            // y = M - x - zc - zs
+
+            let numeratorC = M*Ct - x*C1;
+            let numeratorS = M*St - x*S1;
+
+            // Express in terms of zc, zs
+            // y = M - x - zc - zs
+
+            // Carbon:
+            // xC1 + (M-x-zc-zs)C2 + zcCc = M Ct
+
+            // Silicon:
+            // xS1 + (M-x-zc-zs)S2 + zsSs = M St
+
+            // Rearranged into 2 equations:
+            // zc*(Cc - C2) - zs*C2 = M Ct - xC1 - (M-x)C2
+            // -zc*S2 + zs*(Ss - S2) = M St - xS1 - (M-x)S2
+
+            let RHS1 = M*Ct - x*C1 - (M-x)*C2;
+            let RHS2 = M*St - x*S1 - (M-x)*S2;
+
+            let a1 = (Cc - C2);
+            let b1 = -C2;
+
+            let a2 = -S2;
+            let b2 = (Ss - S2);
+
+            let det = a1*b2 - a2*b1;
+
+            if (Math.abs(det) < 1e-6) continue;
+
+            let zc = (RHS1*b2 - RHS2*b1) / det;
+            let zs = (a1*RHS2 - a2*RHS1) / det;
+
+            let y = M - x - zc - zs;
+
+            if (x >= 0 && y >= 0 && zc >= 0 && zs >= 0) {
+                let cost = zc*Pc + zs*Ps;
+
+                solutions.push({
+                    type: "Both Additives (Optimized)",
+                    x, y, zc, zs,
+                    cost
+                });
+            }
         }
     }
 
