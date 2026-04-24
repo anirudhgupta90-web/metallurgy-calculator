@@ -29,7 +29,7 @@ export default function handler(req, res) {
     let xC = (Ct - C2) / (C1 - C2);
     let xS = (St - S2) / (S1 - S2);
 
-    if (isFinite(xC) && isFinite(xS) && Math.abs(xC - xS) < 0.001) {
+    if (isFinite(xC) && isFinite(xS) && Math.abs(xC - xS) < 1e-4) {
         let x = xC * M;
         let y = M - x;
 
@@ -43,7 +43,7 @@ export default function handler(req, res) {
     }
 
     // -------------------------
-    // 2. CARBON ADDITIVE ONLY
+    // 2. CARBON ONLY
     // -------------------------
     {
         let x = (St - S2) / (S1 - S2);
@@ -74,7 +74,7 @@ export default function handler(req, res) {
     }
 
     // -------------------------
-    // 3. SILICON ADDITIVE ONLY
+    // 3. SILICON ONLY
     // -------------------------
     {
         let x = (Ct - C2) / (C1 - C2);
@@ -105,62 +105,48 @@ export default function handler(req, res) {
     }
 
     // -------------------------
-    // 4. BOTH ADDITIVES (LP SOLVER)
+    // 4. BOTH ADDITIVES (CLEAN SOLVER)
     // -------------------------
     {
-        const steps = 200; // increase for more precision
-        const stepSize = M / steps;
+        const steps = 200;       // x resolution
+        const steps_zc = 200;    // zc resolution
 
-        for (let x = 0; x <= M; x += stepSize) {
+        const stepX = M / steps;
+        const stepZc = M / steps_zc;
 
-            // Solve for zc and zs using equations
-            // Assume y = remaining mass after additives
+        for (let x = 0; x <= M; x += stepX) {
 
-            let A = Cc;
-            let B = Ss;
+            for (let zc = 0; zc <= M; zc += stepZc) {
 
-            // Solve using substitution
-            // y = M - x - zc - zs
+                // Solve zs from carbon balance
+                // xC1 + yC2 + zcCc = M Ct
+                // y = M - x - zc - zs
 
-            let numeratorC = M*Ct - x*C1;
-            let numeratorS = M*St - x*S1;
+                let numerator =
+                    M*Ct
+                    - x*C1
+                    - (M - x - zc)*C2
+                    - zc*Cc;
 
-            // Express in terms of zc, zs
-            // y = M - x - zc - zs
+                let zs = numerator / (-C2);
 
-            // Carbon:
-            // xC1 + (M-x-zc-zs)C2 + zcCc = M Ct
+                if (!isFinite(zs)) continue;
 
-            // Silicon:
-            // xS1 + (M-x-zc-zs)S2 + zsSs = M St
+                let y = M - x - zc - zs;
 
-            // Rearranged into 2 equations:
-            // zc*(Cc - C2) - zs*C2 = M Ct - xC1 - (M-x)C2
-            // -zc*S2 + zs*(Ss - S2) = M St - xS1 - (M-x)S2
+                if (y < 0 || zc < 0 || zs < 0) continue;
 
-            let RHS1 = M*Ct - x*C1 - (M-x)*C2;
-            let RHS2 = M*St - x*S1 - (M-x)*S2;
+                // Check silicon consistency
+                let S_calc = (x*S1 + y*S2 + zs*Ss) / M;
+                let C_calc = (x*C1 + y*C2 + zc*Cc) / M;
 
-            let a1 = (Cc - C2);
-            let b1 = -C2;
+                if (Math.abs(S_calc - St) > 0.001) continue;
+                if (Math.abs(C_calc - Ct) > 0.001) continue;
 
-            let a2 = -S2;
-            let b2 = (Ss - S2);
-
-            let det = a1*b2 - a2*b1;
-
-            if (Math.abs(det) < 1e-6) continue;
-
-            let zc = (RHS1*b2 - RHS2*b1) / det;
-            let zs = (a1*RHS2 - a2*RHS1) / det;
-
-            let y = M - x - zc - zs;
-
-            if (x >= 0 && y >= 0 && zc >= 0 && zs >= 0) {
                 let cost = zc*Pc + zs*Ps;
 
                 solutions.push({
-                    type: "Both Additives (Optimized)",
+                    type: "Both Additives (Exact)",
                     x, y, zc, zs,
                     cost
                 });
