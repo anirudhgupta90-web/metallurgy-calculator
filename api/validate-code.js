@@ -23,40 +23,59 @@ export default async function handler(req, res) {
     const { code } = req.body;
 
     if (!code) {
-      return res.status(400).json({ success: false, error: 'Code required' });
+      return res.status(200).json({
+        success: false,
+        error: "Code required"
+      });
     }
 
-    // 1. Check if exists + unused
+    // 🔥 FIX: NO .single()
     const { data, error } = await supabase
       .from('codes')
       .select('*')
       .eq('code', code)
-      .eq('status', 'unused')
-      .single();
+      .eq('status', 'unused');
 
-    if (error || !data) {
-      return res.status(200).json({
+    if (error) {
+      return res.status(500).json({
         success: false,
-        error: 'Invalid or already used code'
+        error: error.message
       });
     }
 
-    // 2. Mark as used
+    if (!data || data.length === 0) {
+      return res.status(200).json({
+        success: false,
+        error: "Invalid or already used code"
+      });
+    }
+
+    const record = data[0];
+
+    // Mark as used
     const { error: updateError } = await supabase
       .from('codes')
       .update({
         status: 'used',
         used_at: new Date()
       })
-      .eq('id', data.id);
+      .eq('id', record.id);
 
     if (updateError) {
-      return res.status(500).json({ error: updateError.message });
+      return res.status(500).json({
+        success: false,
+        error: updateError.message
+      });
     }
 
-    return res.status(200).json({ success: true });
+    return res.status(200).json({
+      success: true
+    });
 
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    return res.status(500).json({
+      success: false,
+      error: err.message
+    });
   }
 }
